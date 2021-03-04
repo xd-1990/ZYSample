@@ -1,0 +1,14 @@
+platform :ios, '11.0'
+
+target 'SampleProject' do
+    
+    use_frameworks!
+    
+    pod 'Alamofire'             #网络库
+    pod 'SQLite.swift'          #埋点模块使用
+    pod 'UMCCommon','7.1.1'     #友盟
+    pod 'Google-Mobile-Ads-SDK' #广告，按需使用
+    pod 'SwiftyStoreKit'        #内购
+    pod 'SVProgressHUD'         #内购用的Loading组件
+    pod 'HandyJSON'             #JSON解析
+end

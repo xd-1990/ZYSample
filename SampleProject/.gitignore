@@ -1,0 +1,8 @@
+.DS_Store
+xcuserdata
+.svn
+*.svn-base
+._*
+~$*
+
+# Pods
