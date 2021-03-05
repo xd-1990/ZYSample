@@ -22,24 +22,6 @@ class PurcheaseMgr: NSObject {
         SVProgressHUD.setDefaultMaskType(.black)
         SVProgressHUD.setMaximumDismissTimeInterval(2.0)
     }
-    
-    static public func productIdWeek() -> String {
-        if let id = Bundle.main.bundleIdentifier {
-            let pid = id + ".SubscriptionWeekly"
-            return pid
-        }
-        
-        return ""
-    }
-    
-    static public func productIdLifeTime() -> String {
-        if let id = Bundle.main.bundleIdentifier {
-            let pid = id + ".LifeTime"
-            return pid
-        }
-        
-        return ""
-    }
 
     private var products: [SKProduct] = [SKProduct]()
     
@@ -149,7 +131,7 @@ class PurcheaseMgr: NSObject {
                 MetricsEvent.subscriptionEndPurchase(identifier: productID, success: false, error: error as NSError)
                 
                 if errMsg.count > 0 {
-                    SVProgressHUD.showError(withStatus: errMsg)
+                    SVProgressHUD.showError(withStatus: "Payment failed")
                 } else {
                     SVProgressHUD.dismiss()
                 }
@@ -295,10 +277,10 @@ class PurcheaseMgr: NSObject {
     }
     
     func toPurchaseVC() {
-//        let purchaseVC = PurchaseViewController.loadMyStoryboard(name: "Setting")
-//        purchaseVC.hidesBottomBarWhenPushed = true
-//        if let delegate = UIApplication.shared.delegate, let window = delegate.window, let w = window, let root = w.rootViewController as? UINavigationController {
-//            root.pushViewController(purchaseVC, animated: true)
-//        }
+        let purchaseVC = PurchaseViewController.loadMyStoryboard(name: "Setting")
+        purchaseVC.hidesBottomBarWhenPushed = true
+        if let delegate = UIApplication.shared.delegate, let window = delegate.window, let w = window, let root = w.rootViewController as? UINavigationController {
+            root.pushViewController(purchaseVC, animated: true)
+        }
     }
 }

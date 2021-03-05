@@ -18,11 +18,11 @@ let kConfigKey = "com.api.getConfig"
     private static let TOKEN = ""
     
     private static let BASEURL = "https://xxx.xxx.com/api"
-    private static let GETCONFIG = BASEURL + "/getConfig"
-    private static let ERRORREPORT = BASEURL + "/uploadCrashLogs"
-    private static let ATTRIBUTION = BASEURL + "/uploadAttribution"
-    private static let UPLOADRECEIPT = BASEURL + "/verifyReceipt"
-    private static let EXPIRESDATE = BASEURL + "/getSubscriptionExpiresDate"
+    private static let GETCONFIG = BASEURL + "/config"
+    private static let ERRORREPORT = BASEURL + "/crash"
+    private static let ATTRIBUTION = BASEURL + "/attribution"
+    private static let UPLOADRECEIPT = BASEURL + "/receipt"
+    private static let EXPIRESDATE = BASEURL + "/subscription"
 
     enum SendResultType {
         case NoError(dic: [String: Any])
@@ -30,26 +30,10 @@ let kConfigKey = "com.api.getConfig"
     }
 
     // MARK: - Send Events
-    public static func postEvents(events:Array<Dictionary<String, Any>>, handler : @escaping (SendResultType)->()) {
-        let bodyDic = buildBody(events: events)
-        let str = convertToJsonData(dict: bodyDic)
-        let postBody = zy_encrypt_to_base64(str.data(using: .utf8))
-        
-        let url = URL.init(string: ERRORREPORT)
-        var request = URLRequest.init(url: url!)
-        request.httpMethod = "POST"
-        request.httpBody = postBody
-        request.addValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.addValue(C_VERSION, forHTTPHeaderField:"X-CRYPTO-VERSION")
-        
-        let task = URLSession.shared.dataTask(with: request, completionHandler: { data, response, error in
-            if(error != nil) {
-                handler(.RequestError(error: error!))
-            } else {
-                handler(.NoError(dic: ["ok":true]))
-            }
-        })
-        task.resume()
+    public static func postEvents(events:Array<Dictionary<String, Any>>, completion: ((Bool, String, Any?)->())?) {
+        request(urlString: ERRORREPORT, body: ["events": events]) { (succeed, tips, result) in
+            completion?(succeed, tips, result)
+        }
     }
     
     // MARK: - GetConfig
@@ -70,11 +54,9 @@ let kConfigKey = "com.api.getConfig"
         }
     }
     
-    private static func convertToJsonData(dict: [String: Any]) -> String {
+    public static func convertToJsonData(dict: [String: Any]) -> String {
         let data = try? JSONSerialization.data(withJSONObject: dict, options: JSONSerialization.WritingOptions(rawValue: 0))
         let jsonStr = NSString(data: data!, encoding: String.Encoding.utf8.rawValue)
-        jsonStr?.replacingOccurrences(of: " ", with: "")
-        jsonStr?.replacingOccurrences(of: "\n", with: "")
 
         return jsonStr! as String
     }
@@ -174,14 +156,14 @@ extension ServiceApi {
         
     }
     
-    private static func buildBody(events: [[String: Any]]) -> [String: Any] {
+    public static func buildBody(events: [[String: Any]]) -> [String: Any] {
         var dic = [String: Any]()
         let bundleId = UIDevice.getBundleID()
         dic["app_id"] = bundleId
-        #if IS_PRODUCT
-        dic["environment"] = "production"
-        #else
+        #if DEBUG
         dic["environment"] = "sandbox"
+        #else
+        dic["environment"] = "production"
         #endif
         dic["app_build_version"] = UIDevice.getLocalAppBundleVersion()
         dic["crypto_version"] = C_VERSION
@@ -207,16 +189,16 @@ extension ServiceApi {
 
 // MARK: - Subscribe
 extension ServiceApi {
-    public static func uploadReceipt(_ receipt: String, completion: @escaping ((Bool, String) -> Void)) {
+    public static func uploadReceipt(_ receipt: String, completion: @escaping ((Bool, String, SubscribeModel?) -> Void)) {
         
         let body = ["receipt_data": receipt]
         request(urlString: UPLOADRECEIPT, body: body) { (succeed, tips, result) in
             if let result = result as? [String: Any],
                let model = SubscribeModel.deserialize(from: result) {
                 let _ = model.checkVip()
-                completion(model.ok, tips)
+                completion(model.ok, tips, model)
             } else {
-                completion(false, tips)
+                completion(false, tips, nil)
             }
         }
         
@@ -255,19 +237,25 @@ class SubscribeModel: HandyJSON {
         }
         
         isVip = subscription_expires_timestamp > server_timestamp
-        UserDefaults.standard.set(subscription_expires_timestamp, forKey: "com.iap.expireTime")
+        UserDefaults.standard.set(self.toJSONString(), forKey: "com.iap.info")
         UserDefaults.standard.synchronize()
         return isVip
     }
     
     static func isVip() -> Bool {
-        let expire = UserDefaults.standard.integer(forKey: "com.iap.expireTime")
-        return TimeInterval(expire) > Date().timeIntervalSince1970
+        if let info = UserDefaults.standard.string(forKey: "com.iap.info"),
+           let model = SubscribeModel.deserialize(from: info) {
+            return model.isVip
+        }
+        return false
     }
     
     static func expireTimestamp() -> Int {
-        let expire = UserDefaults.standard.integer(forKey: "com.iap.expireTime")
-        return expire
+        if let info = UserDefaults.standard.string(forKey: "com.iap.info"),
+           let model = SubscribeModel.deserialize(from: info) {
+            return Int(model.subscription_expires_timestamp)
+        }
+        return 0
     }
     
     required init() {

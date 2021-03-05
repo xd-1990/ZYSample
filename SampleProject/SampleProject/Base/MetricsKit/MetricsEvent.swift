@@ -10,48 +10,18 @@ import UIKit
 import StoreKit
 
 @objc public enum MetricsPage: Int{
-    case loadingPage
-    case scannerPage
-    case createPage
-    case historyPage
-    case settingsPage
-    case IAPPage
-    case createCodePage
-    case resultPage
-    case stylePage
-    case emptyPage
-    case dirListPage
-    case allDirPage
+    case start
+    case none
 }
 
 private extension MetricsPage {
     var description: String {
         get {
             switch (self) {
-            case .loadingPage:
-                return "启动页"
-            case .scannerPage:
-                return "Scanner页"
-            case .createPage:
-                return "Create页"
-            case .historyPage:
-                return "History页"
-            case .settingsPage:
-                return "Settings页"
-            case .IAPPage:
-                return "订阅页"
-            case .createCodePage:
-                return "创建二维码页"
-            case .resultPage:
-                return "Result页"
-            case .stylePage:
-                return "Style页"
-            case .emptyPage:
-                return "空文件夹详情页"
-            case .dirListPage:
-                return "文件夹详情页"
-            case .allDirPage:
-                return "全部文件夹页"
+            case .start:
+                return "获取配置页"
+            case .none:
+                return ""
             }
         }
     }
@@ -422,29 +392,25 @@ private extension MetricsAction {
             parameters["名称"] = what
             eventExt(module: module, source: source, name: success ? "请求成功" : "请求失败", parameters: parameters)
         case .willRestore:
-            eventExt(module: module, source: source, name: "准备恢复购买", parameters: [:])
-        case .didRestore(let what, let extra):
-            var parameters = extra
-            parameters["恢复购买项"] = what
-            eventExt(module: module, source: source, name: "恢复购买结束", parameters: parameters)
+            eventExt(module: module, source: source, name: action.description, parameters: [:])
+        case .didRestore(let suc, let info):
+            eventExt(module: module, source: source, name: suc ? "恢复购买成功" : "恢复购买失败", parameters: info)
         case .click(let what, let extra):
-            var parameters = extra
-            parameters["目标"] = what
-            eventExt(module: module, source: source, name: "点击", parameters: parameters)
+            eventExt(module: module, source: source, name: "点击: \(what)", parameters: [:])
         case .delete(let what, let extra):
             var parameters = extra
             parameters["目标"] = what
             eventExt(module: module, source: source, name: "删除", parameters: parameters)
         case .willPurchase(let what, let extra):
             var parameters = extra
-            parameters["购买项"] = what
-            eventExt(module: module, source: source, name: "即将购买", parameters: parameters)
+            parameters["商品id"] = what
+            eventExt(module: module, source: source, name: "开始付款", parameters: parameters)
         case .didPurchase(let what, let success, let extra):
             var parameters = extra
-            parameters["购买项"] = what
-            eventExt(module: module, source: source, name: success ? "购买成功" : "购买失败", parameters: parameters)
+            parameters["商品id"] = what
+            eventExt(module: module, source: source, name: success ? "付款成功" : "付款失败", parameters: parameters)
         case .willVerify:
-            eventExt(module: module, source: source, name: "即将校验购买项", parameters: [:])
+            eventExt(module: module, source: source, name: "开始校验", parameters: [:])
         case .didVerify(let success, let extra):
             eventExt(module: module, source: source, name: success ? "校验成功" : "校验失败", parameters: extra)
         case .select(let what, let extra):

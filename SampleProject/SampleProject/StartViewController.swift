@@ -93,12 +93,12 @@ class StartViewController: UIViewController, GADInterstitialDelegate {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        MetricsEvent.pageDidEnter(.loadingPage)
+        MetricsEvent.pageDidEnter(.start)
     }
     
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        MetricsEvent.pageDidLeave(.loadingPage)
+        MetricsEvent.pageDidLeave(.start)
     }
     
     func enterMainPage(){

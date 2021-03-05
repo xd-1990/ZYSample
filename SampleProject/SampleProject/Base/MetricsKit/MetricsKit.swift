@@ -5,6 +5,7 @@
 
 import Foundation
 import SQLite
+import Alamofire
 
 extension Connection {
     public var userVersion: Int32 {
@@ -183,6 +184,12 @@ extension MetricsKit {
             // 获取数据库连接
             if let db = self.databaseConnection {
                 while (true) {
+                    
+                    if let mgr = NetworkReachabilityManager.default, !mgr.isReachable {
+                        // 无网络，取消
+                        break
+                    }
+                    
                     var maxID: Int64 = 0
                     var eventsArray = [[String: Any]]()
                     // 查询数据库
@@ -220,19 +227,20 @@ extension MetricsKit {
                     if !eventsArray.isEmpty {
                         let semaphore = DispatchSemaphore(value: 0)
                         print("Send events")
-                        ServiceApi.postEvents(events: eventsArray) { result in
-                            switch (result) {
-                            case .NoError(let result):
-                                if let ok = result["ok"] as? Bool {
-                                    if (ok) {
+                        ServiceApi.postEvents(events: eventsArray) { (suc, tips, result) in
+                            if suc {
+                                if let result = result as? [String: Any],
+                                   let ok = result["ok"] as? Bool {
+                                    if ok {
                                         print("Send events successfully")
-                                        break
+                                    } else {
+                                        maxID = 0 // 不要修改数据库
                                     }
+                                } else {
+                                    maxID = 0 // 不要修改数据库
                                 }
-                                print("Send events failed. Server tell us send again.")
-                                maxID = 0 // 不要修改数据库
-                            case .RequestError(let error):
-                                print("Send events failed. Error \(error)")
+                            } else {
+                                print("Send events failed. Error \(tips)")
                                 maxID = 0 // 不要修改数据库
                             }
                             semaphore.signal()
