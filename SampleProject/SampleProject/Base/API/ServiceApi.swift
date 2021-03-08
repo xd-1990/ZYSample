@@ -15,19 +15,14 @@ let kConfigKey = "com.api.getConfig"
 @objcMembers class ServiceApi: NSObject {
     
     private static let C_VERSION = zy_crypto_version
-    private static let TOKEN = ""
+    private static let TOKEN = "OZWUHCLEKOR3uVJSUJTHgRXCQ3Zi4rHm"
     
-    private static let BASEURL = "https://xxx.xxx.com/api"
+    private static let BASEURL = "https://qrcodereader.cometprivacy.com/api"
     private static let GETCONFIG = BASEURL + "/config"
-    private static let ERRORREPORT = BASEURL + "/crash"
-    private static let ATTRIBUTION = BASEURL + "/attribution"
-    private static let UPLOADRECEIPT = BASEURL + "/receipt"
-    private static let EXPIRESDATE = BASEURL + "/subscription"
-
-    enum SendResultType {
-        case NoError(dic: [String: Any])
-        case RequestError(error: Error)
-    }
+    private static let ERRORREPORT = BASEURL + ""
+    private static let ATTRIBUTION = BASEURL + ""
+    private static let UPLOADRECEIPT = BASEURL + ""
+    private static let EXPIRESDATE = BASEURL + ""
 
     // MARK: - Send Events
     public static func postEvents(events:Array<Dictionary<String, Any>>, completion: ((Bool, String, Any?)->())?) {

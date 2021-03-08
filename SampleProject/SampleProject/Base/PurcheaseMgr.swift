@@ -277,10 +277,6 @@ class PurcheaseMgr: NSObject {
     }
     
     func toPurchaseVC() {
-        let purchaseVC = PurchaseViewController.loadMyStoryboard(name: "Setting")
-        purchaseVC.hidesBottomBarWhenPushed = true
-        if let delegate = UIApplication.shared.delegate, let window = delegate.window, let w = window, let root = w.rootViewController as? UINavigationController {
-            root.pushViewController(purchaseVC, animated: true)
-        }
+        
     }
 }
