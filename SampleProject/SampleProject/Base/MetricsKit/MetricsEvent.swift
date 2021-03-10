@@ -10,6 +10,23 @@ import UIKit
 import StoreKit
 
 @objc public enum MetricsPage: Int{
+    case home
+    case setting
+    case purchase
+    case camera
+    case preedit
+    case edit
+    case canvas
+    case filter
+    case sfx
+    case stickers
+    case text
+    case music
+    case adjust
+    case addto
+    case pip
+    case save
+    case guide
     case start
     case none
 }
@@ -18,6 +35,40 @@ private extension MetricsPage {
     var description: String {
         get {
             switch (self) {
+            case .home:
+                return "图片视频选择页"
+            case .edit:
+                return "编辑页"
+            case .setting:
+                return "设置页"
+            case .purchase:
+                return "充值页"
+            case .camera:
+                return "相机页"
+            case .preedit:
+                return "视频初始编辑页"
+            case .canvas:
+                return "Canvas"
+            case .filter:
+                return "Filter"
+            case .sfx:
+                return "SFX"
+            case .stickers:
+                return "Stickers"
+            case .text:
+                return "Text"
+            case .music:
+                return "Music"
+            case .pip:
+                return "PiP"
+            case .addto:
+                return "Add to"
+            case .adjust:
+                return "Adjustment"
+            case .save:
+                return "Save"
+            case .guide:
+                return "引导页"
             case .start:
                 return "获取配置页"
             case .none:
@@ -66,13 +117,6 @@ private extension MetricsSource {
     }
 }
 
-public enum SelectActionType {
-    case SmilarPhoto
-    case Screenshots
-    case LivePhotos
-    case Videos
-}
-
 public enum MetricsAction {
     case state(_ parameters: [String: Any]) // 状态
     
@@ -82,10 +126,6 @@ public enum MetricsAction {
     case willEnter // 准备进入
     case didEnter // 已经进入
     case leave // 离开
-    
-    //文本编辑/退出编辑
-    //    case beginEdit(_ field: String, _ parameters: [String: Any])
-    //    case endEdit(_ field: String, _ parameters: [String: Any])
     
     case willRequest(_ what: String, _ parameters: [String: Any]) // 准备请求某一个内容
     case didRequest(_ what: String, _ success: Bool, _ parameters: [String: Any]) // 请求内容
@@ -103,7 +143,6 @@ public enum MetricsAction {
     case delete(_ what: String, _ parameters: [String: Any])
     
     case select(_ what: String, _ parameters: [String: Any])//选择
-    case scan(_ what: String, _ parameters: [String: Any])//选择
 }
 
 private extension MetricsAction {
@@ -153,8 +192,6 @@ private extension MetricsAction {
                 return "校验成功 \(reason)"
             case .select(let what, _):
                 return "勾选 : \(what)"
-            case .scan(let what, _):
-                return "扫描 : \(what)"
             }
         }
     }
@@ -182,22 +219,6 @@ private extension MetricsAction {
     
     public static func permission(of permission: String, state: String) {
         MetricsEvent.event(module: .app, source: .auto, action: .state(["权限": permission, "权限状态": state]))
-    }
-    
-    // 订阅
-    public static func subscriptionWillLoadProducts() {
-        MetricsEvent.event(module: .app, source: .auto, action: .willRequest("所有购买项", [:]))
-    }
-    
-    public static func subscriptionDidLoadProducts(products: [SKProduct]) {
-        let identifiers = products.map {
-            $0.productIdentifier
-        }
-        MetricsEvent.event(module: .app, source: .auto, action: .didRequest("所有购买项", true, ["所有购买项": identifiers]))
-    }
-    
-    public static func subscriptionDidLoadFailedProducts() {
-        MetricsEvent.event(module: .app, source: .auto, action: .didRequest("所有购买项", false, [:]))
     }
     
     public static func subscriptionWillRestore() {
@@ -308,14 +329,6 @@ private extension MetricsAction {
         MetricsEvent.event(module: .dialog(page, dialog.title ?? dialog.message ?? "对话框"), source: .user, action: .click(action.title ?? action.description, [:]))
     }
     
-    //    public static func textField(_ field: UITextField, withName name: String, didBeginEditIn page: MetricsPage) {
-    //        MetricsEvent.event(module: .page(page), source: .user, action: .beginEdit(name, ["当前字符": field.text ?? ""]))
-    //    }
-    //
-    //    public static func textField(_ field: UITextField, withName name: String, didEndEditIn page: MetricsPage) {
-    //        MetricsEvent.event(module: .page(page), source: .user, action: .endEdit(name, ["当前字符": field.text ?? ""]))
-    //    }
-    
     public static func click(item: String, in dialog: String, in page: MetricsPage, extra: [String: Any] = [:]) {
         MetricsEvent.event(module: .dialog(page, dialog), source: .user, action: .click(item, extra))
     }
@@ -330,10 +343,6 @@ private extension MetricsAction {
     
     public static func select(item: String, in page: MetricsPage, extra: [String: Any] = [:]) {
         MetricsEvent.event(module: .page(page), source: .user, action: .select(item, extra))
-    }
-    
-    public static func scan(item: String, in page: MetricsPage, extra: [String: Any] = [:]) {
-        MetricsEvent.event(module: .page(page), source: .user, action: .scan(item, extra))
     }
     
     public static func viewState(in page: MetricsPage, changeTo state: [String: Any]) {
@@ -417,10 +426,6 @@ private extension MetricsAction {
             var parameters = extra
             parameters["目标"] = what
             eventExt(module: module, source: source, name: "选中", parameters: parameters)
-        case .scan(let what, let extra):
-            var parameters = extra
-            parameters["目标"] = what
-            eventExt(module: module, source: source, name: "扫描", parameters: parameters)
         }
         
         print("Event : module = \(module.description), source = \(source.description), action = \(action.description)")

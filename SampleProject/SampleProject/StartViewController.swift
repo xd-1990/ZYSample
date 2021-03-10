@@ -37,12 +37,14 @@ class StartViewController: UIViewController, GADInterstitialDelegate {
     }
     
     func getConfig() {
-        ServiceApi.getConfig { (suc, tips, result) in
-            if suc {
+        ServiceApi.getConfig { (result) in
+            switch result {
+            case .NoError(let info):
                 // 配置读取成功，正常流程
                 debugPrint("获取配置成功")
                 self.doNext()
-            } else {
+            case .RequestError(let err):
+                debugPrint(err.localizedDescription)
                 // 读取配置失败
                 if self.didLoadConfig {
                     debugPrint("后续获取配置失败")

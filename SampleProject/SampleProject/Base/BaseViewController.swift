@@ -19,8 +19,6 @@ open class BaseViewController: UIViewController {
     
     open override func viewDidLoad() {
         super.viewDidLoad()
-//        self.view.backgroundColor = UIColor.from(rgb: 0x030823)
-//
         if let naviVC = self.navigationController, naviVC.viewControllers.count > 1 {
             let leftItem = UIBarButtonItem.init(image: UIImage(named: "nav_back")?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(backAction))
             self.navigationItem.leftBarButtonItem = leftItem
@@ -37,7 +35,7 @@ open class BaseViewController: UIViewController {
         
         key = "viewWillAppear: " + key
         
-        print(key)
+        debugPrint(key)
     }
     
     open override func viewWillDisappear(_ animated: Bool) {
@@ -66,9 +64,7 @@ open class BaseViewController: UIViewController {
     
     func addBannerAd() {
         DispatchQueue.main.async {
-            // 请求一个banner广告
             let v = ADManager.shard.requestBanner(adUnit: "", from: self, callback: { (banner) in
-                // 获取到广告，调整界面，显示广告
                 self.adHeight.constant = banner.frame.size.height
                 self.bannerShowBlock()
                 for v in self.adContentView.subviews {
@@ -79,7 +75,6 @@ open class BaseViewController: UIViewController {
                     self.view.layoutIfNeeded()
                 }
             }) {
-                // 隐藏已经显示的广告
                 self.adHeight.constant = 0
                 self.bannerDismissBlock()
                 for v in self.adContentView.subviews {

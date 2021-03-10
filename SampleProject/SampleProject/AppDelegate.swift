@@ -10,7 +10,7 @@ import UIKit
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
-
+    var didEnterBg = false
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
@@ -30,11 +30,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func applicationDidBecomeActive(_ application: UIApplication) {
-        MetricsKit.shared.syncResume()
-        MetricsEvent.app(state: "进入前台")
+        if didEnterBg {
+            didEnterBg = false
+            MetricsKit.shared.syncResume()
+            MetricsEvent.app(state: "进入前台")
+        }
     }
     
     func applicationDidEnterBackground(_ application: UIApplication) {
+        didEnterBg = true
         MetricsEvent.app(state: "进入后台")
         MetricsKit.shared.syncAndPause()
     }

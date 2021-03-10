@@ -9,63 +9,97 @@
 import UIKit
 import iAd
 import HandyJSON
+import Alamofire
 
 let kConfigKey = "com.api.getConfig"
 
 @objcMembers class ServiceApi: NSObject {
     
-    private static let C_VERSION = zy_crypto_version
-    private static let TOKEN = "OZWUHCLEKOR3uVJSUJTHgRXCQ3Zi4rHm"
+    // 定义默认参数值和接口地址
+    private static let kVersion = zy_crypto_version
+    private static let kToken = "TXPkyYnSjTRKIkV4aqDvjXyk2852mrBe"
     
-    private static let BASEURL = "https://qrcodereader.cometprivacy.com/api"
-    private static let GETCONFIG = BASEURL + "/config"
-    private static let ERRORREPORT = BASEURL + ""
-    private static let ATTRIBUTION = BASEURL + ""
-    private static let UPLOADRECEIPT = BASEURL + ""
-    private static let EXPIRESDATE = BASEURL + ""
+    private static let kBaseUrl = "https://xx.xx.com/api"
+    private static let kGetConfig = kBaseUrl + "/config"
+    private static let kReport = kBaseUrl + "/crash"
+    private static let kAttribute = kBaseUrl + "/attribution"
+    private static let kUploadReceipt = kBaseUrl + "/receipt"
+    private static let kSubscription = kBaseUrl + "/subscription"
+    
+    
+    enum SendResultType {
+        case NoError([String: Any])
+        case RequestError(Error)
+    }
 
     // MARK: - Send Events
-    public static func postEvents(events:Array<Dictionary<String, Any>>, completion: ((Bool, String, Any?)->())?) {
-        request(urlString: ERRORREPORT, body: ["events": events]) { (succeed, tips, result) in
-            completion?(succeed, tips, result)
+    public static func postEvents(events:Array<Dictionary<String, Any>>, completion: ((SendResultType)->Void)?) {
+        request(urlString: kReport, body: ["events": events]) { (result) in
+            completion?(result)
         }
     }
     
     // MARK: - GetConfig
-    public static func getConfig(completion: @escaping ((Bool, String, Any?)->())) {
-        request(urlString: GETCONFIG) { (succeed, tips, result) in
-            completion(succeed, tips, result)
-            guard succeed == true else {
-                return
-            }
-            
-            if let result = result as? [String: Any] {
-                UserDefaults.standard.setValue(result, forKey: kConfigKey)
-                if let uploadInterval = result["upload_user_events_interval"] as? Int {
-                    UserDefaults.standard.setValue(uploadInterval, forKey: kEventsUploadIntervalKey)
+    public static func getConfig(completion: ((SendResultType)->Void)?) {
+        request(urlString: kGetConfig) { result in
+            switch result {
+            case .NoError(let info):
+                if let config = ConfigResult.deserialize(from: info) {
+                    if config.ok {
+                        UserDefaults.standard.setValue(config.upload_user_events_interval, forKey: kEventsUploadIntervalKey)
+                        UserDefaults.standard.synchronize()
+                        completion?(.NoError(info))
+                    } else {
+                        var msg = config.msg
+                        if msg.count == 0 {
+                            msg = "api response err"
+                        }
+                        let err = APIError.init(msg)
+                        completion?(.RequestError(err as Error))
+                    }
                 }
-                UserDefaults.standard.synchronize()
+            case .RequestError(let err):
+                completion?(.RequestError(err as Error))
             }
         }
     }
     
-    public static func convertToJsonData(dict: [String: Any]) -> String {
-        let data = try? JSONSerialization.data(withJSONObject: dict, options: JSONSerialization.WritingOptions(rawValue: 0))
-        let jsonStr = NSString(data: data!, encoding: String.Encoding.utf8.rawValue)
-
-        return jsonStr! as String
+    public static func convertToJsonData(dict: [String: Any]) -> String? {
+        if let data = try? JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted),
+            let jsonStr = String(data: data, encoding: .utf8) {
+            return jsonStr
+        }
+        return nil
     }
 }
 
 
 // MARK: - Base request
 extension ServiceApi {
-    private static func request(urlString: String, body: [String: Any]? = nil, completion: ((Bool, String, Any?)->())?) {
+    private static func request(urlString: String, body: [String: Any]? = nil, completion: ((SendResultType)->Void)?) {
+        
+        func debugOutput(suc: Bool, info: Any) {
+            #if DEBUG
+            debugPrint("\n---------------------")
+            debugPrint("请求接口:" + urlString)
+            let flag = suc ? "成功" : "失败"
+            debugPrint("请求\(flag)如下:")
+            debugPrint(info)
+            debugPrint("---------------------\n")
+            #endif
+        }
+        
         
         var bodyDic = buildBody(events: [])
         
         if let body = body {
             bodyDic = bodyDic.merging(body, uniquingKeysWith: { (_, last) in last })
+        }
+        
+        guard let bodyStr = convertToJsonData(dict: bodyDic) else {
+            let err = APIError.init("param err")
+            completion?(.RequestError(err as Error))
+            return
         }
 
         #if DEBUG
@@ -76,79 +110,47 @@ extension ServiceApi {
         debugPrint("---------------------\n")
         #endif
         
-        let str = convertToJsonData(dict: bodyDic)
-        let postBody = zy_encrypt_to_base64(str.data(using: .utf8))
-
-        let url = URL(string: urlString)
-        var request = URLRequest(url: url!)
+        let headers: HTTPHeaders = [
+            .init(name: "X-CRYPTO-VERSION", value: kVersion)
+        ]
+        let postBody = zy_encrypt_to_base64(bodyStr.data(using: .utf8))
         
-        if urlString == GETCONFIG {
-            request.timeoutInterval = 5
-        } else {
-            request.timeoutInterval = 10
+        AF.request(urlString){ (urlRequest) in
+            urlRequest.timeoutInterval = 10
+            urlRequest.headers = headers
+            urlRequest.httpBody = postBody
+            urlRequest.method = .post
+        }.response { (response) in
+            switch response.result {
+            case .success(let data):
+                guard let data = zy_decrypt_with_base64(data) else {
+                    let err = APIError("zy_decrypt_with_base64 failed")
+                    debugOutput(suc: false, info: err.localizedDescription)
+                    completion?(.RequestError(err))
+                    return
+                }
+                
+                guard let json = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) else {
+                    let err = APIError("JSONSerialization failed")
+                    debugOutput(suc: false, info: err.localizedDescription)
+                    completion?(.RequestError(err))
+                    return
+                }
+                
+                guard let result = json as? [String: Any] else {
+                    let err = APIError("not [String: Any]")
+                    debugOutput(suc: false, info: err.localizedDescription)
+                    completion?(.RequestError(err))
+                    return
+                }
+                
+                debugOutput(suc: true, info: json)
+                completion?(.NoError(result))
+            case .failure(let err):
+                debugOutput(suc: false, info: err.localizedDescription)
+                completion?(.RequestError(err as Error))
+            }
         }
-        
-        request.httpMethod = "POST"
-        request.httpBody = postBody
-        request.addValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.addValue(C_VERSION, forHTTPHeaderField: "X-CRYPTO-VERSION")
-        let task = URLSession.shared.dataTask(with: request, completionHandler: { data, _, error in
-            
-            guard error == nil else {
-                #if DEBUG
-                debugPrint("\n---------------------")
-                debugPrint("请求接口:" + urlString)
-                debugPrint("请求错误如下:")
-                debugPrint(error!.localizedDescription)
-                debugPrint("---------------------\n")
-                #endif
-                DispatchQueue.main.async {
-                    (completion != nil) ? completion!(false, error!.localizedDescription, error) : nil
-                }
-                return
-            }
-            
-            guard let base64Data = zy_decrypt_with_base64(data) else {
-                #if DEBUG
-                debugPrint("\n---------------------")
-                debugPrint("请求接口:" + urlString)
-                debugPrint("处理zy_decrypt_with_base64错误")
-                debugPrint("---------------------\n")
-                #endif
-                DispatchQueue.main.async {
-                    (completion != nil) ? completion!(false, "zy_decrypt_with_base64 failure", nil) : nil
-                }
-                return
-            }
-            
-            guard let json = try? JSONSerialization.jsonObject(with: base64Data, options: .mutableLeaves) as? [String: Any] else {
-                #if DEBUG
-                debugPrint("\n---------------------")
-                debugPrint("请求接口:" + urlString)
-                debugPrint("处理JSONSerialization错误")
-                debugPrint("---------------------\n")
-                #endif
-                DispatchQueue.main.async {
-                    (completion != nil) ? completion!(false, "JSONSerialization failure", nil) : nil
-                }
-                return
-            }
-            
-            DispatchQueue.main.async {
-                (completion != nil) ? completion!(true, "request succeed", json) : nil
-            }
-
-            #if DEBUG
-            debugPrint("\n---------------------")
-            debugPrint("请求接口:" + urlString)
-            debugPrint("请求成功结果如下:")
-            debugPrint(json)
-            debugPrint("---------------------\n")
-            #endif
-            
-        })
-        task.resume()
-        
     }
     
     public static func buildBody(events: [[String: Any]]) -> [String: Any] {
@@ -161,7 +163,7 @@ extension ServiceApi {
         dic["environment"] = "production"
         #endif
         dic["app_build_version"] = UIDevice.getLocalAppBundleVersion()
-        dic["crypto_version"] = C_VERSION
+        dic["crypto_version"] = kVersion
         dic["device_system_name"] = UIDevice.current.systemName
         dic["user_region"] = UIDevice.getLocaleCode()
         dic["user_language"] = UIDevice.getLocaleLanguage()
@@ -172,7 +174,7 @@ extension ServiceApi {
         dic["client_region"] = UIDevice.getLocaleCode()
         dic["client_language"] = UIDevice.getLocaleLanguage()
         dic["request_uuid"] = UIDevice.getRequestUUID()
-        dic["token"] = TOKEN
+        dic["token"] = kToken
         
         if events.count > 0 {
             dic["events"] = events
@@ -185,25 +187,31 @@ extension ServiceApi {
 // MARK: - Subscribe
 extension ServiceApi {
     public static func uploadReceipt(_ receipt: String, completion: @escaping ((Bool, String, SubscribeModel?) -> Void)) {
-        
         let body = ["receipt_data": receipt]
-        request(urlString: UPLOADRECEIPT, body: body) { (succeed, tips, result) in
-            if let result = result as? [String: Any],
-               let model = SubscribeModel.deserialize(from: result) {
-                let _ = model.checkVip()
-                completion(model.ok, tips, model)
-            } else {
-                completion(false, tips, nil)
+        request(urlString: kUploadReceipt, body: body) { (result) in
+            switch result {
+            case .NoError(let info):
+                if let model = SubscribeModel.deserialize(from: info) {
+                    let _ = model.checkVip()
+                    completion(true, "", model)
+                } else {
+                    completion(false, "Deserialize failed", nil)
+                }
+            case .RequestError(let err):
+                completion(false, err.localizedDescription, nil)
             }
         }
-        
     }
     
     public static func getSubscriptionExpiresDate() {
-        request(urlString: EXPIRESDATE) { (succeed, tips, result) in
-            if let result = result as? [String: Any],
-               let model = SubscribeModel.deserialize(from: result) {
-                let _ = model.checkVip()
+        request(urlString: kSubscription) { (result) in
+            switch result {
+            case .NoError(let info):
+                if let model = SubscribeModel.deserialize(from: info) {
+                    let _ = model.checkVip()
+                }
+            case .RequestError( _):
+                print("")
             }
         }
     }
@@ -281,16 +289,18 @@ extension ServiceApi {
         guard let attributionDetails = attributionDetails else { return }
 
         let body = ["attribution": attributionDetails]
-        request(urlString: ATTRIBUTION, body: body) { (succeed, tips, result) in
-            if let result = result as? [String: Any],
-               let bl = result["ok"] as? Bool,
-               bl {
-                let currentVersion = UIDevice.getLocalAppVersion()
-                UserDefaults.standard.setValue(currentVersion, forKey: "kSearchAdsLastVersion")
-                UserDefaults.standard.synchronize()
+        request(urlString: kAttribute, body: body) { (result) in
+            switch result {
+            case .NoError(let info):
+                if let b1 = info["ok"] as? Bool, b1 {
+                    let currentVersion = UIDevice.getLocalAppVersion()
+                    UserDefaults.standard.setValue(currentVersion, forKey: "kSearchAdsLastVersion")
+                    UserDefaults.standard.synchronize()
+                }
+            case .RequestError( _):
+                print("")
             }
         }
-        
     }
     
     private class func compareVersion(_ ver: String, to toVer: String) -> ComparisonResult {
@@ -305,5 +315,51 @@ extension ServiceApi {
         let des0 = ary0[0...2].description
         let des1 = ary1[0...2].description
         return des0.compare(des1, options: .numeric)
+    }
+}
+
+struct APIError : LocalizedError {
+    
+    /// 描述
+    var desc = ""
+    
+    /// 原因
+    var reason = ""
+    
+    /// 建议
+    var suggestion = ""
+    
+    /// 帮助
+    var help = ""
+    
+    /// 必须实现，否则报The operation couldn’t be completed.
+    var errorDescription: String? {
+        return desc
+    }
+    
+    var failureReason: String? {
+        return reason
+    }
+    
+    var recoverySuggestion: String? {
+        return suggestion
+    }
+    
+    var helpAnchor: String? {
+        return help
+    }
+    
+    init(_ desc: String) {
+        self.desc = desc
+    }
+}
+
+class ConfigResult: HandyJSON {
+    var ok = false
+    var msg = ""
+    var upload_user_events_interval = 30
+    
+    required init() {
+        
     }
 }

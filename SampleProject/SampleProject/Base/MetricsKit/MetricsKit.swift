@@ -223,24 +223,24 @@ extension MetricsKit {
                             }
                         }
                     }
+                    
+                    var isFailed = false
+                    
                     // 发送时间至服务器
                     if !eventsArray.isEmpty {
                         let semaphore = DispatchSemaphore(value: 0)
                         print("Send events")
-                        ServiceApi.postEvents(events: eventsArray) { (suc, tips, result) in
-                            if suc {
-                                if let result = result as? [String: Any],
-                                   let ok = result["ok"] as? Bool {
-                                    if ok {
-                                        print("Send events successfully")
-                                    } else {
-                                        maxID = 0 // 不要修改数据库
-                                    }
+                        ServiceApi.postEvents(events: eventsArray) { (result) in
+                            switch result {
+                            case .NoError(let info):
+                                if let ok = info["ok"] as? Bool, ok {
+                                    print("Send events successfully")
                                 } else {
+                                    isFailed = true
                                     maxID = 0 // 不要修改数据库
                                 }
-                            } else {
-                                print("Send events failed. Error \(tips)")
+                            case .RequestError(_):
+                                isFailed = true
                                 maxID = 0 // 不要修改数据库
                             }
                             semaphore.signal()
@@ -256,6 +256,11 @@ extension MetricsKit {
                             }
                         }
                     }
+                    
+                    if isFailed {
+                        break
+                    }
+                    
                     if (eventsArray.isEmpty) {
                         // 没有事件需要同步了, 休眠
                         print("No event. Wait for next sync event.")
