@@ -13,7 +13,8 @@ import Alamofire
 class StartViewController: UIViewController, GADInterstitialDelegate {
     var enterMainViewWhenTimeout:Bool = false
     var interstitial:GADInterstitial?
-    
+    // 是否允许后续无网络使用
+    var allowUseWithoutConfig = true
     // 是否获取过配置
     var didLoadConfig = false
     
@@ -23,14 +24,24 @@ class StartViewController: UIViewController, GADInterstitialDelegate {
         if let _ = UserDefaults.standard.object(forKey: kConfigKey) {
             didLoadConfig = true
         }
-        
+                
         // 国行版本的系统首次安装会提示网络访问权限，为防止获取配置失败，需要监听到网络可用再访问接口
-        if let manager = NetworkReachabilityManager() {
-            manager.startListening(onQueue: .main) { (status) in
-                debugPrint("network status = \(status)")
-                if status == .reachable(.cellular) || status == .reachable(.ethernetOrWiFi) {
-                    manager.stopListening()
-                    self.getConfig()
+        if let manager = NetworkReachabilityManager.default {
+            if manager.isReachable {
+                getConfig()
+            } else {
+                // 当前无网络
+                if allowUseWithoutConfig, didLoadConfig {
+                    // 获取过配置，允许后续无网使用
+                    getConfig()
+                } else {
+                    manager.startListening(onQueue: .main) {[weak self] (status) in
+                        debugPrint("network status = \(status)")
+                        if status == .reachable(.cellular) || status == .reachable(.ethernetOrWiFi) {
+                            manager.stopListening()
+                            self?.getConfig()
+                        }
+                    }
                 }
             }
         }
@@ -49,8 +60,7 @@ class StartViewController: UIViewController, GADInterstitialDelegate {
                 if self.didLoadConfig {
                     debugPrint("后续获取配置失败")
                     // 后续使用是否强制需要获取配置，取决于项目需求
-                    let allowUseWithoutConfig = true
-                    if allowUseWithoutConfig {
+                    if self.allowUseWithoutConfig, self.didLoadConfig {
                         self.doNext()
                     }
                 } else {

@@ -215,7 +215,6 @@
 			buildConfigurationList = ECC49D7225EDE0BE008EBFEF /* Build configuration list for PBXNativeTarget "SampleProject" */;
 			buildPhases = (
 				A1A121E0FA8D6AE22FCCB726 /* [CP] Check Pods Manifest.lock */,
-				0B70298BAE8C140FBB9528CF /* [CP] Prepare Artifacts */,
 				ECC49D5A25EDE0BC008EBFEF /* Sources */,
 				ECC49D5B25EDE0BC008EBFEF /* Frameworks */,
 				ECC49D5C25EDE0BC008EBFEF /* Resources */,
@@ -294,23 +293,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SampleProject/Pods-SampleProject-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		0B70298BAE8C140FBB9528CF /* [CP] Prepare Artifacts */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-SampleProject/Pods-SampleProject-artifacts-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Prepare Artifacts";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-SampleProject/Pods-SampleProject-artifacts-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SampleProject/Pods-SampleProject-artifacts.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		A1A121E0FA8D6AE22FCCB726 /* [CP] Check Pods Manifest.lock */ = {

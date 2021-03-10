@@ -207,7 +207,6 @@ private extension MetricsAction {
         UMConfigure.setLogEnabled(true)
         #endif
         UMConfigure.initWithAppkey(umengAppID, channel: "App Store")
-        MobClick.setCrashReportEnabled(true)
         MobClick.setAutoPageEnabled(true)
         // MetricsKit
         MetricsKit.shared.configure()

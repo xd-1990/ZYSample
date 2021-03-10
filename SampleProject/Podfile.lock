@@ -39,7 +39,10 @@ PODS:
   - SQLite.swift/standard (0.12.2)
   - SVProgressHUD (2.2.5)
   - SwiftyStoreKit (0.16.1)
-  - UMCCommon (7.1.1)
+  - UMAPM (1.1.1)
+  - UMCommon (7.2.5):
+    - UMDevice
+  - UMDevice (1.1.0)
 
 DEPENDENCIES:
   - Alamofire
@@ -48,7 +51,9 @@ DEPENDENCIES:
   - SQLite.swift
   - SVProgressHUD
   - SwiftyStoreKit
-  - UMCCommon (= 7.1.1)
+  - UMAPM
+  - UMCommon
+  - UMDevice
 
 SPEC REPOS:
   trunk:
@@ -63,7 +68,9 @@ SPEC REPOS:
     - SQLite.swift
     - SVProgressHUD
     - SwiftyStoreKit
-    - UMCCommon
+    - UMAPM
+    - UMCommon
+    - UMDevice
 
 SPEC CHECKSUMS:
   Alamofire: 3b6a534a3df22db367e4dedeeca73d1ddfcf0e2f
@@ -77,8 +84,10 @@ SPEC CHECKSUMS:
   SQLite.swift: d2b4642190917051ce6bd1d49aab565fe794eea3
   SVProgressHUD: 1428aafac632c1f86f62aa4243ec12008d7a51d6
   SwiftyStoreKit: 6b9c08810269f030586dac1fae8e75871a82e84a
-  UMCCommon: f455f92c125342e360d6ad9eafe484945351eeb5
+  UMAPM: d0623e0b3ca8b1a1df855e0bddb91b5c002d097d
+  UMCommon: b5aabdb9fad44330ff8738d9bc46ebf93db14bf2
+  UMDevice: 28d21a568c8e8322e5a03bbd53b138d0c098d3b3
 
-PODFILE CHECKSUM: 864570a2ccd33540aceb9238bb6cd5cde6e05960
+PODFILE CHECKSUM: d7cb0a7da7180cd8bbf6050f1cc254a8ac9b97a3
 
-COCOAPODS: 1.9.2
+COCOAPODS: 1.10.1

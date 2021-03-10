@@ -46,6 +46,7 @@ let kConfigKey = "com.api.getConfig"
             case .NoError(let info):
                 if let config = ConfigResult.deserialize(from: info) {
                     if config.ok {
+                        UserDefaults.standard.setValue(info, forKey: kConfigKey)
                         UserDefaults.standard.setValue(config.upload_user_events_interval, forKey: kEventsUploadIntervalKey)
                         UserDefaults.standard.synchronize()
                         completion?(.NoError(info))

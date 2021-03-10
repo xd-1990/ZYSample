@@ -13,4 +13,5 @@
 #import <SVProgressHUD/SVProgressHUD.h>
 #import <UMCommon/UMCommon.h>
 #import <UMCommon/MobClick.h>
+#import <UMAPM/UMCrashConfigure.h>
 #import "ZYCrypto.h"
